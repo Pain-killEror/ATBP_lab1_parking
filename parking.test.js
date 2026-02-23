@@ -1,34 +1,42 @@
 const calculateParkingCost = require('./parking.js');
 
-describe('Функция расчета стоимости парковки', () => {
+describe('Parking Counter Tests', () => {
+  let mockBarrierSystem;
 
-  test('должна возвращать 0, если время парковки 10 минут (бесплатно)', () => {
-    expect(calculateParkingCost(10, 50)).toBe(0);
+  beforeEach(() => {
+    mockBarrierSystem = {
+      getEntryTime: jest.fn()
+    };
   });
 
-  test('должна взимать плату за 1 час, если время парковки 16 минут', () => {
-    expect(calculateParkingCost(16, 50)).toBe(50);
+  test('yesterday to today scenario', async () => {
+    const carPlate = 'A777AA';
+    const hourlyRate = 100;
+    
+    mockBarrierSystem.getEntryTime.mockResolvedValue('2026-02-21T23:00:00');
+    const exitTime = '2026-02-22T02:00:00';
+
+    const result = await calculateParkingCost(carPlate, exitTime, mockBarrierSystem, hourlyRate);
+
+    expect(result).toBe(300);
   });
 
-  test('должна взимать плату за 2 часа, если время парковки 61 минута', () => {
-    expect(calculateParkingCost(61, 100)).toBe(200);
+  test('free period 15 min', async () => {
+    mockBarrierSystem.getEntryTime.mockResolvedValue('2026-02-22T10:00:00');
+    const result = await calculateParkingCost('B111BB', '2026-02-22T10:10:00', mockBarrierSystem, 100);
+    expect(result).toBe(0);
   });
 
-  test('должна взимать плату ровно за 1 час, если время парковки 60 минут', () => {
-    expect(calculateParkingCost(60, 70)).toBe(70);
+  test('error when car not found', async () => {
+    mockBarrierSystem.getEntryTime.mockResolvedValue(null);
+
+    await expect(calculateParkingCost('UNKNOWN', '2026-02-22T12:00:00', mockBarrierSystem, 100))
+      .rejects.toThrow('Данные о въезде не найдены');
   });
 
-
-  test('должна выдавать ошибку, если время отрицательное', () => {
-    expect(() => {
-      calculateParkingCost(-10, 50);
-    }).toThrow('Время и тариф не могут быть отрицательными');
+  test('negative rate error', async () => {
+    mockBarrierSystem.getEntryTime.mockResolvedValue('2026-02-22T10:00:00');
+    await expect(calculateParkingCost('A123BC', '2026-02-22T11:00:00', mockBarrierSystem, -100))
+      .rejects.toThrow('Время и тариф не могут быть отрицательными');
   });
-
-  test('должна выдавать ошибку, если тариф отрицательный', () => {
-    expect(() => {
-      calculateParkingCost(30, -50);
-    }).toThrow('Время и тариф не могут быть отрицательными');
-  });
-
 });

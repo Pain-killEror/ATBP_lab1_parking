@@ -1,16 +1,24 @@
+async function calculateParkingCost(carPlate, exitTimeISO, BarrierSystem, hourlyRate) {
+  const entryTimeISO = await BarrierSystem.getEntryTime(carPlate);
+  
+  if (!entryTimeISO) {
+    throw new Error('Данные о въезде не найдены');
+  }
 
-function calculateParkingCost(time, hourlyRate) {
+  const entry = new Date(entryTimeISO);
+  const exit = new Date(exitTimeISO);
+  const diffInMs = exit - entry;
+  const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
 
-    if (time < 0 || hourlyRate < 0) {
+  if (diffInMinutes < 0 || hourlyRate < 0) {
     throw new Error('Время и тариф не могут быть отрицательными');
   }
 
-  if (time <= 15) {
+  if (diffInMinutes <= 15) {
     return 0;
   }
 
-  const hours = Math.ceil(time / 60);
-  
+  const hours = Math.ceil(diffInMinutes / 60);
   return hours * hourlyRate;
 }
 
