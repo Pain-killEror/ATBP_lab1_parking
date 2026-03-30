@@ -6,7 +6,6 @@ app.use(express.json());
 
 const PORT = 3000;
 
-// Теперь база данных генерирует свежее время КАЖДЫЙ раз, когда мы к ней обращаемся
 const getParkingDB = () => ({
   'A123AA': new Date(Date.now() - 10 * 60000).toISOString(), 
   'B222BB': new Date(Date.now() - 65 * 60000).toISOString()  
@@ -14,7 +13,7 @@ const getParkingDB = () => ({
 
 app.get('/api/parking/entry/:plate', (req, res) => {
   const plate = req.params.plate;
-  const db = getParkingDB(); // Получаем свежие данные
+  const db = getParkingDB();
   const entryTime = db[plate];
 
   if (!entryTime) {
@@ -26,7 +25,7 @@ app.get('/api/parking/entry/:plate', (req, res) => {
 
 app.post('/api/parking/exit', (req, res) => {
   const { plate, hourlyRate } = req.body;
-  const db = getParkingDB(); // Получаем свежие данные
+  const db = getParkingDB();
   const entryTime = db[plate];
 
   if (!entryTime) {
@@ -45,6 +44,10 @@ app.post('/api/parking/exit', (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Сервер запущен. Адрес: http://localhost:${PORT}`);
-});
+module.exports = app;
+
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Сервер запущен. Адрес: http://localhost:${PORT}`);
+  });
+}
