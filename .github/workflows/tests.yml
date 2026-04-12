@@ -1,4 +1,4 @@
-name: CI Tests
+name: CI Pipeline
 
 on:
   push:
@@ -7,24 +7,36 @@ on:
     branches: [ lab-6 ]
 
 jobs:
-  test:
+  ui-tests:
     runs-on: ubuntu-latest
-
+    strategy:
+      matrix:
+        # Тестируем на версиях 18 и 20, как просит лаба
+        node-version: [18.x, 20.x]
+    
     steps:
     - uses: actions/checkout@v4
 
-    - name: Use Node.js
+    - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
-        node-version: '20'
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
 
     - name: Install dependencies
-      run: npm install
+      run: npm ci # Установка из package-lock для стабильности
 
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps
 
-    - name: Start Server and Run Tests
+    - name: Start server
       run: |
-        node server.js &
-        npx playwright test
+        npm start &
+        npx playwright test # Запуск тестов
+
+    - name: Upload Allure Results
+      if: always() # Сохраняем отчет даже если тесты упали
+      uses: actions/upload-artifact@v4
+      with:
+        name: allure-results-node-${{ matrix.node-version }}
+        path: allure-results/
