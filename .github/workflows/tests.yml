@@ -81,3 +81,14 @@ jobs:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_branch: gh-pages
         publish_dir: allure-report
+    
+    - name: send telegram message
+      uses: appleboy/telegram-action@master
+      if: always() # Отправлять сообщение даже если тесты упали
+      with:
+        to: ${{ secrets.TELEGRAM_TO }}
+        token: ${{ secrets.TELEGRAM_TOKEN }}
+        message: |
+          🚀 Тесты завершены!
+          Статус: ${{ job.status }}
+          Ссылка на отчет: https://pain-killeror.github.io/ATBP_lab1_parking/
