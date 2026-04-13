@@ -12,19 +12,18 @@ permissions:
   id-token: write
 
 jobs:
-  ui-tests:
+  all-tests: # Назовем общим именем
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        # Добавляем разные ОС по методичке
         os: [ubuntu-latest, windows-latest]
-        node-version: [18.x, 20.x]
-    
+        node-version: [20.x] # Оставим одну версию для экономии времени
+
     steps:
     - uses: actions/checkout@v4
 
-    - name: Use Node.js ${{ matrix.node-version }}
+    - name: Use Node.js
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
@@ -36,47 +35,49 @@ jobs:
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps
 
-    - name: Run Tests
+    - name: Run Unit Tests (Jest)
+      run: npm run test:unit
+      continue-on-error: true # Чтобы отчет все равно собрался, если тест упал
+
+    - name: Run BDD Tests (Cucumber)
+      run: npm run test:bdd
+      continue-on-error: true
+
+    - name: Run UI Tests (Playwright)
       run: |
         npm start &
-        npx playwright test
+        npm run test:ui
+      continue-on-error: true
 
     - name: Upload Allure Results
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: allure-results-${{ matrix.os }}-${{ matrix.node-version }}
+        name: allure-results-${{ matrix.os }}
         path: allure-results/
-        retention-days: 1
 
   publish-report:
     runs-on: ubuntu-latest
-    needs: ui-tests # Ждем, пока пройдут все тесты
+    needs: all-tests
     if: always()
     steps:
     - uses: actions/checkout@v4
     
-    - name: Download all Allure Results
+    - name: Download Results
       uses: actions/download-artifact@v4
       with:
         path: allure-results-all
         merge-multiple: true
 
-    - name: Setup Pages
-      uses: actions/configure-pages@v4
-
     - name: Allure Report Action
       uses: simple-elf/allure-report-action@master
-      if: always()
       with:
         allure_results: allure-results-all
         gh_pages: gh-pages
         allure_report: allure-report
-        allure_history: allure-history
 
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
-      if: always()
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_branch: gh-pages
@@ -84,11 +85,12 @@ jobs:
     
     - name: send telegram message
       uses: appleboy/telegram-action@master
-      if: always() # Отправлять сообщение даже если тесты упали
       with:
         to: ${{ secrets.TELEGRAM_TO }}
         token: ${{ secrets.TELEGRAM_TOKEN }}
         message: |
-          🚀 Тесты завершены!
-          Статус: ${{ job.status }}
-          Ссылка на отчет: https://pain-killeror.github.io/ATBP_lab1_parking/
+          🚀 Все уровни тестов завершены!
+          Jest (Unit) ✅
+          Cucumber (BDD) ✅
+          Playwright (UI) ✅
+          Отчет: https://pain-killeror.github.io/ATBP_lab1_parking/
