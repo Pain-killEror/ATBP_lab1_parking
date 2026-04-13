@@ -1,7 +1,7 @@
 module.exports = {
-  testEnvironment: "node",
-  reporters: [
-    "default",
-    ["allure-jest", { outputDir: "allure-results" }]
-  ]
+  // Теперь Allure подключается как среда выполнения, а не репортер
+  testEnvironment: "allure-jest/node",
+  testEnvironmentOptions: {
+    resultsDir: "allure-results"
+  }
 };
